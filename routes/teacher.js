@@ -22,7 +22,8 @@ const {
   updatePaper,
   deletePaperQue,
   classList,
-  classDetail
+  classDetail,
+  createClass
   // updateBlog,
   // delBlog
 } = require('../controller/teacher')
@@ -216,6 +217,17 @@ router.get('/testList', async (ctx, next) => {
   const listData = await testList(authorId, keyword)
   console.log(listData.length,'testdata')
   ctx.body = new SuccessModel(listData)
+})
+
+router.post('/createClass', async (ctx, next) => {
+  if (ctx.session.userId == null) {
+    //未登录
+    ctx.body = new ErrorModel('未登录')
+    return
+  }
+  ctx.request.body.authorId = ctx.session.userId
+  const data = await createClass(ctx.request.body)
+  ctx.body = new SuccessModel(data)
 })
 
 router.get('/classList', async (ctx, next) => {

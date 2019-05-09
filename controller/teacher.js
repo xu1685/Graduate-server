@@ -413,6 +413,47 @@ const testList = async (authorId, keyword) => {
     return data
 }
 
+const createClass = async (postData = {}) => {
+    let teacherId = postData.authorId
+    let excelData = postData.excelData
+        let classData = excelData.Sheet1
+        for(let i=0;i<classData.length;i++){
+            let stuData = classData[i]
+            let username = stuData['用户名']
+            let realname = stuData['姓名']
+            let className = stuData['班级']
+
+            let sql = `insert into users (username,realname) values ('${username}','${realname}')`
+            let insertData = await exec(sql)
+            let stuId = insertData.insertId
+
+            sql = `select * from class where className='${className}'`
+            let hasClass = (await exec(sql))
+            // console.log(hasClass,'hasClass')
+            if(hasClass.length){
+                let students = hasClass[0].students
+                if(!students){
+                    students = ''
+                }
+                students += stuId + ','
+                // console.log('hasclass',students)
+                sql = `update class set students='${students}' where classId=${hasClass[0].classId} `
+                let updateData = await exec(sql)
+            }else{
+                let students = stuId + ','
+                sql = `insert into class (className,teacherId,students) values ('${className}',${teacherId},'${students}')`
+                let insertData = (await exec(sql))[0]
+            }
+    }
+ 
+  
+    let allClass = await classList(teacherId)
+    // console.log(allClass)
+    return {
+        allClass: allClass
+    }
+}
+
 const classList = async (authorId) => {
     let sql = `select * from class where teacherId=${authorId} `
 
@@ -421,10 +462,13 @@ const classList = async (authorId) => {
 }
 
 const classDetail = async (authorId, classId) => {
+    classId = parseInt(classId)
+    // console.log(classId,'classId')
     let sql = `select * from class where teacherId=${authorId} and classId=${classId} `
     let classData = await exec(sql)
-    sql = `select * from stutest where classId=${classId}`
+    sql = `select * from users where FIND_IN_SET(id,(SELECT students FROM class WHERE classId=${classId}))`
     let studentData = await exec(sql)
+    // console.log(studentData,'studentData')
     return {
         classData: classData[0],
         studentData: studentData
@@ -471,7 +515,8 @@ module.exports = {
     updatePaper,
     deletePaperQue,
     classList,
-    classDetail
+    classDetail,
+    createClass
     // updateBlog,
     // delBlog
 }
