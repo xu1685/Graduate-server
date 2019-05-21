@@ -4,7 +4,7 @@ const {
 } = require('../db/mysql')
 
 const getList = async (authorId, keyword) => {
-    let sql = `select * from paper where 1=1 `
+    let sql = `select * from paper where state=0 `
     if (authorId) {
         sql += `and authorId='${authorId}' `
     }
@@ -30,10 +30,29 @@ const getPaper = async (paperId) => {
 }
 
 const deletePaper = async (paperId, authorId) => {
-    let sql = `delete from paper WHERE paperId=${paperId}`
+    let sql = `update paper set state=1 WHERE paperId=${paperId}`
     let deleteData = await exec(sql);
+    sql = `select testId from test WHERE paperId=${paperId}`
+    let deleteId = await exec(sql);
+
     sql = `delete from test WHERE paperId=${paperId}`
     let deleteTest = await exec(sql);
+    // console.log(deleteId,'deleteId')    
+    for(let i=0;i<deleteId.length;i++){ 
+        sql=`select * from stutest where testIdarr like '%${deleteId[i].testId}%'`
+        let data = await exec(sql);
+        // console.log(data,'data')
+        for(let j=0;j<data.length;j++){
+            let testIdarr = data[j].testIdarr.split(',').filter(function (x) {
+                return (x != '' && x != deleteId[i].testId)
+            })
+            testIdarr = testIdarr.join(',')+','
+            // console.log(testIdarr,'testidarr')
+            sql = `update stutest set testIdarr='${testIdarr}' where stuId=${data[j].stuId}`
+            let updateData = await exec(sql);
+        }
+        
+    }
 
     let resData = await getList(authorId)
     return {
@@ -218,7 +237,7 @@ const allQue = async (reqData = {}) => {
         keyword,
         paperId
     } = reqData
-    let sql = `select * from questions where 1=1 `
+    let sql = `select * from questions where state=0 `
     // if (authorId) {
     //     sql += `and authorId='${authorId}' `
     // }
@@ -311,7 +330,7 @@ const deleteQue = async (reqData = {}) => {
     let affectTags = 0;
     let deleteTags = 0
     for (let i = 0; i < deleteArr.length; i++) {
-        sql = `select tags from questions where queId=${deleteArr[i]}`
+        sql = `select tags from questions where queId=${deleteArr[i]} and state=0`
         let tagArr = (await exec(sql))[0].tags.split(',').filter(function (x) {
             return x != ''
         })
@@ -329,7 +348,7 @@ const deleteQue = async (reqData = {}) => {
                 }
             }
         }
-        sql = `DELETE FROM questions WHERE queId=${deleteArr[i]}`
+        sql = `update questions set state=1 WHERE queId=${deleteArr[i]}`
         deleteCount += (await exec(sql)).affectedRows
     }
     let all = await allQue()
@@ -423,7 +442,7 @@ const createClass = async (postData = {}) => {
             let realname = stuData['姓名']
             let className = stuData['班级']
 
-            let sql = `insert into users (username,realname) values ('${username}','${realname}')`
+            let sql = `insert ignore into users (username,realname) values ('${username}','${realname}')`
             let insertData = await exec(sql)
             let stuId = insertData.insertId
 

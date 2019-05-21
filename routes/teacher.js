@@ -215,7 +215,7 @@ router.get('/testList', async (ctx, next) => {
   //登录之后
   //强制只能访问自己的博客
   const listData = await testList(authorId, keyword)
-  console.log(listData.length,'testdata')
+  // console.log(listData.length,'testdata')
   ctx.body = new SuccessModel(listData)
 })
 
